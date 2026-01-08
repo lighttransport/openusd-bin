@@ -65,6 +65,7 @@ cd openusd-minsizerel-windows-x86_64
 ### 3. Build and Release Linux (`release.yml`)
 
 **Triggers:**
+- **Push a git tag** starting with 'v' (e.g., `v1.0.0`) - **Automated release**
 - GitHub release created
 - Manual dispatch with optional release creation
 
@@ -73,14 +74,28 @@ cd openusd-minsizerel-windows-x86_64
 2. Generates build information file
 3. Creates versioned package
 4. Calculates SHA256 checksums
-5. Attaches artifacts to GitHub release (if triggered by release)
+5. **Automatically creates a GitHub release** and attaches artifacts
 
 **Release Artifacts:**
 - `openusd-X.Y.Z-minsizerel-linux-x86_64.tar.gz` - Versioned build
 - `checksums.txt` - SHA256 checksums
 - `BUILD_INFO.txt` - Detailed build information (included in tarball)
 
-**Manual Release:**
+**Creating a Release:**
+
+**Option 1: Automated (Recommended)**
+```bash
+# Tag and push
+git tag v1.0.0
+git push origin v1.0.0
+
+# GitHub Actions will automatically:
+# 1. Build for Linux and Windows
+# 2. Create a GitHub release
+# 3. Upload artifacts with checksums
+```
+
+**Option 2: Manual**
 Go to Actions → Build and Release → Run workflow
 - Check "Create a new release"
 - Enter release tag (e.g., `v1.0.0`)
@@ -88,6 +103,7 @@ Go to Actions → Build and Release → Run workflow
 ### 4. Build and Release Windows (`release-windows.yml`)
 
 **Triggers:**
+- **Push a git tag** starting with 'v' (e.g., `v1.0.0`) - **Automated release**
 - GitHub release created
 - Manual dispatch with optional release creation
 
@@ -96,14 +112,23 @@ Go to Actions → Build and Release → Run workflow
 2. Generates build information file
 3. Creates versioned package
 4. Calculates SHA256 checksums
-5. Attaches artifacts to GitHub release (if triggered by release)
+5. **Automatically creates a GitHub release** and attaches artifacts
 
 **Release Artifacts:**
 - `openusd-X.Y.Z-minsizerel-windows-x86_64.zip` - Versioned build
 - `checksums.txt` - SHA256 checksums
 - `BUILD_INFO.txt` - Detailed build information (included in ZIP)
 
-**Manual Release:**
+**Creating a Release:**
+
+**Option 1: Automated (Recommended)**
+```bash
+# Tag and push (same as Linux - both workflows run in parallel)
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+**Option 2: Manual**
 Go to Actions → Build and Release (Windows) → Run workflow
 - Check "Create a new release"
 - Enter release tag (e.g., `v1.0.0`)

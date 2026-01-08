@@ -351,6 +351,33 @@ Automated builds are available via GitHub Actions.
    - Includes SHA256 checksums
    - Attaches artifacts to releases
 
+### Creating a Release
+
+**Automated Release (Recommended):**
+
+Simply push a git tag starting with 'v' to automatically trigger release builds for both Linux and Windows:
+
+```bash
+# Create and push a version tag
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+This will automatically:
+1. Trigger both Linux and Windows release workflows in parallel
+2. Build MinSizeRel binaries for both platforms
+3. Create a GitHub Release with the tag name
+4. Upload versioned artifacts with SHA256 checksums
+5. Generate BUILD_INFO.txt with detailed build information
+
+**Manual Release:**
+
+Alternatively, use GitHub Actions manual dispatch:
+1. Go to Actions → "Build and Release" or "Build and Release (Windows)"
+2. Click "Run workflow"
+3. Check "Create a new release"
+4. Enter release tag (e.g., `v1.0.0`)
+
 ### Using Pre-built Artifacts
 
 Download from GitHub Actions or Releases:

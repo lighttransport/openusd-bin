@@ -1,6 +1,9 @@
 name: Build and Release
 
 on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0, v0.25.11, etc.
   release:
     types: [created]
   workflow_dispatch:
@@ -132,10 +135,12 @@ jobs:
         retention-days: 90
 
     - name: Create Release
-      if: github.event_name == 'release' || inputs.create_release
+      if: github.event_name == 'push' || github.event_name == 'release' || inputs.create_release
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ inputs.release_tag || github.ref_name }}
+        draft: false
+        prerelease: false
         files: |
           openusd-${{ steps.usd_version.outputs.version }}-minsizerel-linux-x86_64.tar.gz
           checksums.txt
