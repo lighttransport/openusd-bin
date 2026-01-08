@@ -1,10 +1,10 @@
 # GitHub Actions Workflows
 
-This repository contains automated workflows for building OpenUSD MinSizeRel binaries.
+This repository contains automated workflows for building OpenUSD MinSizeRel binaries on both Linux and Windows platforms.
 
 ## Workflows
 
-### 1. Build OpenUSD MinSizeRel (`build-minsizerel.yml`)
+### 1. Build OpenUSD MinSizeRel Linux (`build-minsizerel.yml`)
 
 **Triggers:**
 - Push to `main` or `master` branch
@@ -33,7 +33,36 @@ cd openusd-minsizerel-linux-x86_64
 source setup-usd-env.sh
 ```
 
-### 2. Build and Release (`release.yml`)
+### 2. Build OpenUSD MinSizeRel Windows (`build-minsizerel-windows.yml`)
+
+**Triggers:**
+- Push to `main` or `master` branch
+- Pull requests to `main` or `master` branch
+- Manual dispatch via GitHub UI
+
+**What it does:**
+1. Sets up Windows build environment (Visual Studio 2022)
+2. Installs dependencies (cmake, ninja, uv)
+3. Clones OpenUSD repository
+4. Builds TBB library
+5. Configures and builds OpenUSD in MinSizeRel mode
+6. Verifies the build
+7. Packages and uploads artifacts
+
+**Artifacts:**
+- `openusd-minsizerel-windows-x86_64.zip` - Compressed installation (retained 30 days)
+- `openusd-minsizerel-installation-windows` - Uncompressed directory (retained 7 days)
+
+**Usage:**
+```powershell
+# Download artifact from GitHub Actions run
+# Extract and use
+Expand-Archive openusd-minsizerel-windows-x86_64.zip
+cd openusd-minsizerel-windows-x86_64
+.\setup-usd-env.bat
+```
+
+### 3. Build and Release Linux (`release.yml`)
 
 **Triggers:**
 - GitHub release created
@@ -56,19 +85,44 @@ Go to Actions → Build and Release → Run workflow
 - Check "Create a new release"
 - Enter release tag (e.g., `v1.0.0`)
 
+### 4. Build and Release Windows (`release-windows.yml`)
+
+**Triggers:**
+- GitHub release created
+- Manual dispatch with optional release creation
+
+**What it does:**
+1. Builds OpenUSD MinSizeRel (same as Windows CI)
+2. Generates build information file
+3. Creates versioned package
+4. Calculates SHA256 checksums
+5. Attaches artifacts to GitHub release (if triggered by release)
+
+**Release Artifacts:**
+- `openusd-X.Y.Z-minsizerel-windows-x86_64.zip` - Versioned build
+- `checksums.txt` - SHA256 checksums
+- `BUILD_INFO.txt` - Detailed build information (included in ZIP)
+
+**Manual Release:**
+Go to Actions → Build and Release (Windows) → Run workflow
+- Check "Create a new release"
+- Enter release tag (e.g., `v1.0.0`)
+
 ## Build Configuration
 
-Both workflows build with:
+All workflows build with:
 - **Build Type:** MinSizeRel
 - **Namespace:** pxr_lte
 - **Library Prefix:** lte
 - **Monolithic:** ON
-- **Library Size:** ~45 MB
-- **Platform:** Ubuntu latest (currently 22.04)
+- **Library Size:** ~45 MB (Linux) / varies (Windows)
+- **Platforms:**
+  - Linux: Ubuntu latest (currently 22.04)
+  - Windows: Windows Server 2022
 
 ## Environment Requirements
 
-The workflows install:
+### Linux Workflows Install:
 - build-essential (gcc, g++, make)
 - cmake
 - ninja-build
@@ -76,24 +130,34 @@ The workflows install:
 - python3-dev
 - uv (Python package manager)
 
+### Windows Workflows Install:
+- Visual Studio 2022 (MSVC)
+- cmake
+- ninja (via Chocolatey)
+- uv (Python package manager)
+
 ## Build Time
 
-Typical build time: ~30-45 minutes on GitHub Actions runners
+Typical build times on GitHub Actions runners:
+- **Linux:** ~30-45 minutes
+- **Windows:** ~35-50 minutes
 
 ## Artifact Usage
 
 After downloading an artifact:
+
+### Linux
 
 ```bash
 # Extract
 tar -xzf openusd-*-minsizerel-linux-x86_64.tar.gz
 
 # The extracted directory contains:
-# - bin/           USD command-line tools
-# - lib/           Shared libraries (lteusd_ms.so)
-# - include/       Header files
-# - lib/python/    Python bindings
-# - setup-usd-env.sh
+# - bin/              USD command-line tools
+# - lib/              Shared libraries (lteusd_ms.so)
+# - include/          Header files
+# - lib/python/       Python bindings
+# - setup-usd-env.sh  Environment setup script
 
 # Setup environment
 source setup-usd-env.sh
@@ -103,9 +167,30 @@ usdcat --help
 python -c "from pxr import Usd; print(Usd.GetVersion())"
 ```
 
+### Windows
+
+```powershell
+# Extract
+Expand-Archive openusd-*-minsizerel-windows-x86_64.zip
+
+# The extracted directory contains:
+# - bin/              USD command-line tools (.exe)
+# - lib/              DLLs (lteusd_ms.dll)
+# - include/          Header files
+# - lib/python/       Python bindings
+# - setup-usd-env.bat Environment setup script
+
+# Setup environment
+.\setup-usd-env.bat
+
+# Verify
+usdcat --help
+python -c "from pxr import Usd; print(Usd.GetVersion())"
+```
+
 ## Notes
 
-- Artifacts are built for **Linux x86_64** only
+- Artifacts are built for **Linux x86_64** and **Windows x86_64**
 - TBB library is included in the distribution
 - Python version is determined by the GitHub Actions runner (currently Python 3.10+)
 - The build excludes imaging, MaterialX, OpenVDB, and other optional features

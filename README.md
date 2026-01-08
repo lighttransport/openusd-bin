@@ -9,14 +9,31 @@ Build scripts for OpenUSD with LTE custom namespace and monolithic library confi
 
 ## Prerequisites
 
+### Linux
 - CMake 3.20+
 - C++17 compiler (GCC 9+ or Clang 10+)
 - [uv](https://github.com/astral-sh/uv) for Python environment management
 - ninja (recommended) or make
 
-Install uv if not already installed:
+Install uv:
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+### Windows
+- CMake 3.20+
+- Visual Studio 2019 or 2022 with C++ build tools
+- [uv](https://github.com/astral-sh/uv) for Python environment management
+- ninja (optional, recommended)
+
+Install uv:
+```powershell
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Install ninja (optional):
+```powershell
+choco install ninja
 ```
 
 ## Build Configuration
@@ -51,24 +68,42 @@ Two build variants are available:
 
 ### 1. Clone Repository
 
+**Linux:**
 ```bash
 ./01-checkout.sh
+```
+
+**Windows:**
+```cmd
+01-checkout.bat
 ```
 
 Clones https://github.com/lighttransport/openusd to `./openusd`.
 
 ### 2. Build TBB
 
+**Linux:**
 ```bash
 ./02-download-tbb.sh
+```
+
+**Windows:**
+```cmd
+02-download-tbb.bat
 ```
 
 Downloads and builds Intel oneTBB v2021.12.0. Installs to `./dist/tbb`.
 
 ### 3. Configure
 
+**Linux:**
 ```bash
 ./03-configure.sh
+```
+
+**Windows:**
+```cmd
+03-configure.bat
 ```
 
 - Creates Python virtual environment at `./.venv` using uv
@@ -77,25 +112,37 @@ Downloads and builds Intel oneTBB v2021.12.0. Installs to `./dist/tbb`.
 
 ### 4. Build and Install
 
+**Linux:**
 ```bash
 ./04-build.sh
+```
+
+**Windows:**
+```cmd
+04-build.bat
 ```
 
 Builds OpenUSD and installs to `./dist`.
 
 ### 5. Generate Environment Script
 
+**Linux:**
 ```bash
 ./05-setup-env.sh
 ```
 
-Generates `setup-usd-env.sh` in `./dist` for setting up the runtime environment.
+**Windows:**
+```cmd
+05-setup-env.bat
+```
+
+Generates `setup-usd-env.sh` (Linux) or `setup-usd-env.bat` (Windows) in `./dist` for setting up the runtime environment.
 
 ## Quick Start
 
 ### Default Build (RelWithDebInfo)
 
-Run all steps:
+**Linux:**
 ```bash
 ./01-checkout.sh
 ./02-download-tbb.sh
@@ -104,9 +151,20 @@ Run all steps:
 ./05-setup-env.sh
 ```
 
+**Windows:**
+```cmd
+01-checkout.bat
+02-download-tbb.bat
+03-configure.bat
+04-build.bat
+05-setup-env.bat
+```
+
 ### MinSizeRel Build (Size-Optimized)
 
-For a smaller library size (~40-50% reduction):
+For a smaller library size (94.6% reduction):
+
+**Linux:**
 ```bash
 ./01-checkout.sh              # Same as default
 ./02-download-tbb.sh          # Same as default
@@ -115,20 +173,39 @@ For a smaller library size (~40-50% reduction):
 ./05-setup-env-minsizerel.sh  # Generate env script
 ```
 
-**Note:** The MinSizeRel build produces a dramatically smaller library (45 MB vs 838 MB - 94.6% reduction) but may have slightly reduced performance compared to RelWithDebInfo.
+**Windows:**
+```cmd
+01-checkout.bat                   REM Same as default
+02-download-tbb.bat               REM Same as default
+03-configure-minsizerel.bat       REM Configure for MinSizeRel
+04-build-minsizerel.bat           REM Build MinSizeRel variant
+05-setup-env-minsizerel.bat       REM Generate env script
+```
+
+**Note:** The MinSizeRel build produces a dramatically smaller library (45 MB vs 838 MB on Linux - 94.6% reduction) but may have slightly reduced performance compared to RelWithDebInfo.
 
 ## Setup
 
-After building, set up the environment by sourcing the setup script:
+After building, set up the environment:
 
-**For RelWithDebInfo build:**
+**Linux - RelWithDebInfo build:**
 ```bash
 source dist/setup-usd-env.sh
 ```
 
-**For MinSizeRel build:**
+**Linux - MinSizeRel build:**
 ```bash
 source dist-minsizerel-ms/setup-usd-env.sh
+```
+
+**Windows - RelWithDebInfo build:**
+```cmd
+dist\setup-usd-env.bat
+```
+
+**Windows - MinSizeRel build:**
+```cmd
+dist-minsizerel-ms\setup-usd-env.bat
 ```
 
 The setup script sets the following environment variables:
@@ -252,14 +329,25 @@ Automated builds are available via GitHub Actions.
 
 ### Available Workflows
 
-1. **Build MinSizeRel** - Builds on every push/PR
-   - Automatically builds MinSizeRel variant
+1. **Build MinSizeRel (Linux)** - Builds on every push/PR
+   - Automatically builds MinSizeRel variant for Linux x86_64
    - Uploads build artifacts (retained 30 days)
    - Run time: ~30-45 minutes
 
-2. **Build and Release** - Creates versioned releases
+2. **Build MinSizeRel (Windows)** - Builds on every push/PR
+   - Automatically builds MinSizeRel variant for Windows x86_64
+   - Uploads build artifacts (retained 30 days)
+   - Run time: ~35-50 minutes
+
+3. **Build and Release (Linux)** - Creates versioned releases
    - Triggered by GitHub releases or manual dispatch
-   - Generates versioned packages
+   - Generates versioned packages for Linux
+   - Includes SHA256 checksums
+   - Attaches artifacts to releases
+
+4. **Build and Release (Windows)** - Creates versioned releases
+   - Triggered by GitHub releases or manual dispatch
+   - Generates versioned packages for Windows
    - Includes SHA256 checksums
    - Attaches artifacts to releases
 
@@ -267,6 +355,7 @@ Automated builds are available via GitHub Actions.
 
 Download from GitHub Actions or Releases:
 
+**Linux:**
 ```bash
 # Extract
 tar -xzf openusd-*-minsizerel-linux-x86_64.tar.gz
@@ -277,7 +366,18 @@ source setup-usd-env.sh
 usdcat --help
 ```
 
-**Platform:** Linux x86_64 only
+**Windows:**
+```powershell
+# Extract
+Expand-Archive openusd-*-minsizerel-windows-x86_64.zip
+
+# Setup and use
+cd openusd-*-minsizerel-windows-x86_64
+.\setup-usd-env.bat
+usdcat --help
+```
+
+**Platforms:** Linux x86_64 and Windows x86_64
 
 See [`.github/WORKFLOWS.md`](.github/WORKFLOWS.md) for detailed documentation.
 
@@ -287,19 +387,21 @@ See [`.github/WORKFLOWS.md`](.github/WORKFLOWS.md) for detailed documentation.
 openusd-bin/
 ├── .github/
 │   ├── workflows/
-│   │   ├── build-minsizerel.yml  # CI workflow
-│   │   └── release.yml            # Release workflow
-│   ├── WORKFLOWS.md               # Workflow documentation
-│   └── CONTRIBUTING.md            # Contribution guide
+│   │   ├── build-minsizerel.yml          # CI workflow (Linux)
+│   │   ├── build-minsizerel-windows.yml  # CI workflow (Windows)
+│   │   ├── release.yml                    # Release workflow (Linux)
+│   │   └── release-windows.yml            # Release workflow (Windows)
+│   ├── WORKFLOWS.md                       # Workflow documentation
+│   └── CONTRIBUTING.md                    # Contribution guide
 ├── .gitignore
-├── 01-checkout.sh
-├── 02-download-tbb.sh
-├── 03-configure.sh
-├── 03-configure-minsizerel.sh
-├── 04-build.sh
-├── 04-build-minsizerel.sh
-├── 05-setup-env.sh
-├── 05-setup-env-minsizerel.sh
+├── 01-checkout.sh / .bat                  # Linux / Windows
+├── 02-download-tbb.sh / .bat              # Linux / Windows
+├── 03-configure.sh / .bat                 # Linux / Windows
+├── 03-configure-minsizerel.sh / .bat      # Linux / Windows
+├── 04-build.sh / .bat                     # Linux / Windows
+├── 04-build-minsizerel.sh / .bat          # Linux / Windows
+├── 05-setup-env.sh / .bat                 # Linux / Windows
+├── 05-setup-env-minsizerel.sh / .bat      # Linux / Windows
 ├── README.md
 ├── openusd/                # Source (after checkout)
 ├── tbb-src/                # TBB source (after step 2)
