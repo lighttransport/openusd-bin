@@ -1,0 +1,45 @@
+# Build directories
+build/
+build-*/
+dist/
+dist-*/
+
+# Source directories
+openusd/
+tbb-src/
+tbb-build/
+
+# Python
+.venv/
+*.pyc
+__pycache__/
+*.pyo
+*.egg-info/
+
+# Build artifacts
+*.tar.gz
+*.zip
+*.so
+*.a
+*.o
+
+# Test files
+test.usda
+test.usdc
+example.usda
+example.usdc
+*.usdz
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
