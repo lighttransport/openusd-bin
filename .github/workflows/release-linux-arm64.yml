@@ -20,7 +20,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm64
+    runs-on: ubuntu-24.04-arm  # ARM64 runner (free for public repos)
 
     steps:
     - name: Checkout repository
