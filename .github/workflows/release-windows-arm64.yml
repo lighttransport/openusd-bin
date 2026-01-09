@@ -73,6 +73,8 @@ jobs:
       id: usd_version
       shell: powershell
       run: |
+        $env:PATH = "$PWD\dist-minsizerel-ms\bin;$PWD\dist-minsizerel-ms\lib;$PWD\dist\tbb\bin;$env:PATH"
+        $env:PYTHONPATH = "$PWD\dist-minsizerel-ms\lib\python;$env:PYTHONPATH"
         $usdVersion = & .venv\Scripts\python.exe -c "from pxr import Usd; v=Usd.GetVersion(); print(f'{v[0]}.{v[1]}.{v[2]}')"
         echo "version=$usdVersion" >> $env:GITHUB_OUTPUT
         Write-Host "USD Version: $usdVersion"
