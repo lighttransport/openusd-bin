@@ -1,10 +1,13 @@
 # GitHub Actions Workflows
 
-This repository contains automated workflows for building OpenUSD MinSizeRel binaries on both Linux and Windows platforms.
+This repository contains automated workflows for building OpenUSD MinSizeRel binaries on multiple platforms:
+- Linux x86_64 and ARM64
+- Windows x86_64 and ARM64
+- macOS ARM64 (Apple Silicon)
 
-## Workflows
+## CI Workflows (Build on every push/PR)
 
-### 1. Build OpenUSD MinSizeRel Linux (`build-minsizerel.yml`)
+### 1. Build OpenUSD MinSizeRel Linux x86_64 (`build-minsizerel.yml`)
 
 **Triggers:**
 - Push to `main` or `master` branch
@@ -33,7 +36,36 @@ cd openusd-minsizerel-linux-x86_64
 source setup-usd-env.sh
 ```
 
-### 2. Build OpenUSD MinSizeRel Windows (`build-minsizerel-windows.yml`)
+### 2. Build OpenUSD MinSizeRel Linux ARM64 (`build-minsizerel-linux-arm64.yml`)
+
+**Triggers:**
+- Push to `main` or `master` branch
+- Pull requests to `main` or `master` branch
+- Manual dispatch via GitHub UI
+
+**What it does:**
+1. Sets up Ubuntu ARM64 build environment
+2. Installs dependencies (cmake, ninja, uv, etc.)
+3. Clones OpenUSD repository
+4. Builds TBB library
+5. Configures and builds OpenUSD in MinSizeRel mode
+6. Verifies the build
+7. Packages and uploads artifacts
+
+**Artifacts:**
+- `openusd-minsizerel-linux-arm64.tar.gz` - Compressed installation (retained 30 days)
+- `openusd-minsizerel-installation-linux-arm64` - Uncompressed directory (retained 7 days)
+
+**Usage:**
+```bash
+# Download artifact from GitHub Actions run
+# Extract and use
+tar -xzf openusd-minsizerel-linux-arm64.tar.gz
+cd openusd-minsizerel-linux-arm64
+source setup-usd-env.sh
+```
+
+### 3. Build OpenUSD MinSizeRel Windows x86_64 (`build-minsizerel-windows.yml`)
 
 **Triggers:**
 - Push to `main` or `master` branch
@@ -62,7 +94,67 @@ cd openusd-minsizerel-windows-x86_64
 .\setup-usd-env.bat
 ```
 
-### 3. Build and Release Linux (`release.yml`)
+### 4. Build OpenUSD MinSizeRel Windows ARM64 (`build-minsizerel-windows-arm64.yml`)
+
+**Triggers:**
+- Push to `main` or `master` branch
+- Pull requests to `main` or `master` branch
+- Manual dispatch via GitHub UI
+
+**What it does:**
+1. Sets up Windows ARM64 build environment (Visual Studio 2022)
+2. Installs dependencies (cmake, ninja, uv)
+3. Clones OpenUSD repository
+4. Builds TBB library for ARM64
+5. Configures and builds OpenUSD in MinSizeRel mode
+6. Verifies the build
+7. Packages and uploads artifacts
+
+**Artifacts:**
+- `openusd-minsizerel-windows-arm64.zip` - Compressed installation (retained 30 days)
+- `openusd-minsizerel-installation-windows-arm64` - Uncompressed directory (retained 7 days)
+
+**Usage:**
+```powershell
+# Download artifact from GitHub Actions run
+# Extract and use
+Expand-Archive openusd-minsizerel-windows-arm64.zip
+cd openusd-minsizerel-windows-arm64
+.\setup-usd-env.bat
+```
+
+### 5. Build OpenUSD MinSizeRel macOS ARM64 (`build-minsizerel-macos-arm64.yml`)
+
+**Triggers:**
+- Push to `main` or `master` branch
+- Pull requests to `main` or `master` branch
+- Manual dispatch via GitHub UI
+
+**What it does:**
+1. Sets up macOS ARM64 build environment (macOS 14 - M1/M2/M3)
+2. Installs dependencies (cmake, ninja via Homebrew, uv)
+3. Clones OpenUSD repository
+4. Builds TBB library for ARM64
+5. Configures and builds OpenUSD in MinSizeRel mode
+6. Verifies the build
+7. Packages and uploads artifacts
+
+**Artifacts:**
+- `openusd-minsizerel-macos-arm64.tar.gz` - Compressed installation (retained 30 days)
+- `openusd-minsizerel-installation-macos-arm64` - Uncompressed directory (retained 7 days)
+
+**Usage:**
+```bash
+# Download artifact from GitHub Actions run
+# Extract and use
+tar -xzf openusd-minsizerel-macos-arm64.tar.gz
+cd openusd-minsizerel-macos-arm64
+source setup-usd-env.sh
+```
+
+## Release Workflows (Triggered by git tags)
+
+### 6. Build and Release Linux x86_64 (`release.yml`)
 
 **Triggers:**
 - **Push a git tag** starting with 'v' (e.g., `v1.0.0`) - **Automated release**
@@ -100,7 +192,26 @@ Go to Actions → Build and Release → Run workflow
 - Check "Create a new release"
 - Enter release tag (e.g., `v1.0.0`)
 
-### 4. Build and Release Windows (`release-windows.yml`)
+### 7. Build and Release Linux ARM64 (`release-linux-arm64.yml`)
+
+**Triggers:**
+- **Push a git tag** starting with 'v' (e.g., `v1.0.0`) - **Automated release**
+- GitHub release created
+- Manual dispatch with optional release creation
+
+**What it does:**
+1. Builds OpenUSD MinSizeRel on Ubuntu ARM64
+2. Generates build information file
+3. Creates versioned package
+4. Calculates SHA256 checksums
+5. **Automatically creates a GitHub release** and attaches artifacts
+
+**Release Artifacts:**
+- `openusd-X.Y.Z-minsizerel-linux-arm64.tar.gz` - Versioned build
+- `checksums-linux-arm64.txt` - SHA256 checksums
+- `BUILD_INFO.txt` - Detailed build information (included in tarball)
+
+### 8. Build and Release Windows x86_64 (`release-windows.yml`)
 
 **Triggers:**
 - **Push a git tag** starting with 'v' (e.g., `v1.0.0`) - **Automated release**
@@ -119,17 +230,62 @@ Go to Actions → Build and Release → Run workflow
 - `checksums.txt` - SHA256 checksums
 - `BUILD_INFO.txt` - Detailed build information (included in ZIP)
 
+### 9. Build and Release Windows ARM64 (`release-windows-arm64.yml`)
+
+**Triggers:**
+- **Push a git tag** starting with 'v' (e.g., `v1.0.0`) - **Automated release**
+- GitHub release created
+- Manual dispatch with optional release creation
+
+**What it does:**
+1. Builds OpenUSD MinSizeRel on Windows ARM64
+2. Generates build information file
+3. Creates versioned package
+4. Calculates SHA256 checksums
+5. **Automatically creates a GitHub release** and attaches artifacts
+
+**Release Artifacts:**
+- `openusd-X.Y.Z-minsizerel-windows-arm64.zip` - Versioned build
+- `checksums-windows-arm64.txt` - SHA256 checksums
+- `BUILD_INFO.txt` - Detailed build information (included in ZIP)
+
+### 10. Build and Release macOS ARM64 (`release-macos-arm64.yml`)
+
+**Triggers:**
+- **Push a git tag** starting with 'v' (e.g., `v1.0.0`) - **Automated release**
+- GitHub release created
+- Manual dispatch with optional release creation
+
+**What it does:**
+1. Builds OpenUSD MinSizeRel on macOS ARM64 (M1/M2/M3)
+2. Generates build information file
+3. Creates versioned package
+4. Calculates SHA256 checksums
+5. **Automatically creates a GitHub release** and attaches artifacts
+
+**Release Artifacts:**
+- `openusd-X.Y.Z-minsizerel-macos-arm64.tar.gz` - Versioned build
+- `checksums-macos-arm64.txt` - SHA256 checksums
+- `BUILD_INFO.txt` - Detailed build information (included in tarball)
+
 **Creating a Release:**
 
-**Option 1: Automated (Recommended)**
+**Automated (Recommended)**
 ```bash
-# Tag and push (same as Linux - both workflows run in parallel)
+# Tag and push - ALL 5 platform workflows run in parallel
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-**Option 2: Manual**
-Go to Actions → Build and Release (Windows) → Run workflow
+This triggers builds for:
+- Linux x86_64
+- Linux ARM64
+- Windows x86_64
+- Windows ARM64
+- macOS ARM64
+
+**Manual**
+Go to Actions → Select platform workflow → Run workflow
 - Check "Create a new release"
 - Enter release tag (e.g., `v1.0.0`)
 
@@ -140,10 +296,13 @@ All workflows build with:
 - **Namespace:** pxr_lte
 - **Library Prefix:** lte
 - **Monolithic:** ON
-- **Library Size:** ~45 MB (Linux) / varies (Windows)
+- **Library Size:** ~45 MB (Linux x86_64) / varies by platform
 - **Platforms:**
-  - Linux: Ubuntu latest (currently 22.04)
-  - Windows: Windows Server 2022
+  - Linux x86_64: Ubuntu latest (currently 22.04)
+  - Linux ARM64: Ubuntu 24.04 ARM64
+  - Windows x86_64: Windows Server 2022
+  - Windows ARM64: Windows Server 2022 ARM64
+  - macOS ARM64: macOS 14 (Apple Silicon M1/M2/M3)
 
 ## Environment Requirements
 
@@ -156,26 +315,37 @@ All workflows build with:
 - uv (Python package manager)
 
 ### Windows Workflows Install:
-- Visual Studio 2022 (MSVC)
+- Visual Studio 2022 (MSVC) - configured for x86_64 or ARM64
 - cmake
 - ninja (via Chocolatey)
 - uv (Python package manager)
 
+### macOS Workflows Install:
+- cmake
+- ninja (via Homebrew)
+- uv (Python package manager)
+- Xcode Command Line Tools (automatic)
+
 ## Build Time
 
 Typical build times on GitHub Actions runners:
-- **Linux:** ~30-45 minutes
-- **Windows:** ~35-50 minutes
+- **Linux x86_64:** ~30-45 minutes
+- **Linux ARM64:** ~30-45 minutes
+- **Windows x86_64:** ~35-50 minutes
+- **Windows ARM64:** ~35-50 minutes
+- **macOS ARM64:** ~25-40 minutes
 
 ## Artifact Usage
 
 After downloading an artifact:
 
-### Linux
+### Linux (x86_64 and ARM64)
 
 ```bash
-# Extract
+# Extract (use appropriate file for your platform)
 tar -xzf openusd-*-minsizerel-linux-x86_64.tar.gz
+# or
+tar -xzf openusd-*-minsizerel-linux-arm64.tar.gz
 
 # The extracted directory contains:
 # - bin/              USD command-line tools
@@ -192,11 +362,13 @@ usdcat --help
 python -c "from pxr import Usd; print(Usd.GetVersion())"
 ```
 
-### Windows
+### Windows (x86_64 and ARM64)
 
 ```powershell
-# Extract
+# Extract (use appropriate file for your platform)
 Expand-Archive openusd-*-minsizerel-windows-x86_64.zip
+# or
+Expand-Archive openusd-*-minsizerel-windows-arm64.zip
 
 # The extracted directory contains:
 # - bin/              USD command-line tools (.exe)
@@ -213,13 +385,40 @@ usdcat --help
 python -c "from pxr import Usd; print(Usd.GetVersion())"
 ```
 
+### macOS ARM64 (Apple Silicon)
+
+```bash
+# Extract
+tar -xzf openusd-*-minsizerel-macos-arm64.tar.gz
+
+# The extracted directory contains:
+# - bin/              USD command-line tools
+# - lib/              Shared libraries (lteusd_ms.dylib)
+# - include/          Header files
+# - lib/python/       Python bindings
+# - setup-usd-env.sh  Environment setup script
+
+# Setup environment
+source setup-usd-env.sh
+
+# Verify
+usdcat --help
+python -c "from pxr import Usd; print(Usd.GetVersion())"
+```
+
 ## Notes
 
-- Artifacts are built for **Linux x86_64** and **Windows x86_64**
+- Artifacts are built for **5 platforms:**
+  - Linux x86_64
+  - Linux ARM64
+  - Windows x86_64
+  - Windows ARM64
+  - macOS ARM64 (Apple Silicon M1/M2/M3)
 - TBB library is included in the distribution
 - Python version is determined by the GitHub Actions runner (currently Python 3.10+)
 - The build excludes imaging, MaterialX, OpenVDB, and other optional features
 - `.pyc` files and `__pycache__` directories are excluded from artifacts
+- macOS builds use `DYLD_LIBRARY_PATH` instead of `LD_LIBRARY_PATH`
 
 ## Customization
 

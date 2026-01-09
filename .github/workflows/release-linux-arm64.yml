@@ -1,0 +1,177 @@
+name: Build and Release (Linux ARM64)
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0, v0.25.11, etc.
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a new release'
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm64
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          python3-dev \
+          curl
+
+    - name: Install uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Clone OpenUSD repository
+      run: ./01-checkout.sh
+
+    - name: Build TBB
+      run: ./02-download-tbb.sh
+
+    - name: Configure MinSizeRel build
+      run: ./03-configure-minsizerel.sh
+
+    - name: Build and install MinSizeRel
+      run: ./04-build-minsizerel.sh
+
+    - name: Generate environment setup script
+      run: ./05-setup-env-minsizerel.sh
+
+    - name: Verify installation
+      run: |
+        source dist-minsizerel-ms/setup-usd-env.sh
+        usdcat --help
+        .venv/bin/python -c "from pxr import Usd; print('USD Version:', Usd.GetVersion())"
+
+    - name: Get OpenUSD version
+      id: usd_version
+      run: |
+        source dist-minsizerel-ms/setup-usd-env.sh
+        USD_VERSION=$(.venv/bin/python -c "from pxr import Usd; v=Usd.GetVersion(); print(f'{v[0]}.{v[1]}.{v[2]}')")
+        echo "version=${USD_VERSION}" >> $GITHUB_OUTPUT
+        echo "USD Version: ${USD_VERSION}"
+
+    - name: Create build info
+      run: |
+        cat > dist-minsizerel-ms/BUILD_INFO.txt << EOF
+        OpenUSD Build Information
+        ========================
+
+        Build Type: MinSizeRel (Size-Optimized Monolithic)
+        USD Version: ${{ steps.usd_version.outputs.version }}
+        Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        Git Commit: ${GITHUB_SHA::8}
+
+        Configuration:
+        - Namespace: pxr_lte
+        - Library Prefix: lte
+        - Monolithic: ON
+        - Python Support: ON
+        - Imaging: OFF
+
+        Platform:
+        - OS: Ubuntu $(lsb_release -rs) ARM64
+        - Compiler: $(gcc --version | head -n1)
+        - CMake: $(cmake --version | head -n1)
+
+        Library Size:
+        $(ls -lh dist-minsizerel-ms/lib/lteusd_ms.so | awk '{print "- Monolithic Library: " $5}')
+
+        Usage:
+        ------
+        1. Extract the archive
+        2. Source the environment setup:
+           source setup-usd-env.sh
+        3. Verify installation:
+           usdcat --help
+           python -c "from pxr import Usd; print(Usd.GetVersion())"
+
+        Note: This build requires TBB libraries in the ../dist/tbb directory
+        or adjust TBB_DIR in setup-usd-env.sh
+        EOF
+
+    - name: Package artifact
+      run: |
+        cd dist-minsizerel-ms
+        tar -czf ../openusd-${{ steps.usd_version.outputs.version }}-minsizerel-linux-arm64.tar.gz \
+          --exclude='*.pyc' \
+          --exclude='__pycache__' \
+          .
+        cd ..
+
+    - name: Calculate checksums
+      run: |
+        sha256sum openusd-${{ steps.usd_version.outputs.version }}-minsizerel-linux-arm64.tar.gz > checksums-linux-arm64.txt
+        cat checksums-linux-arm64.txt
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: openusd-${{ steps.usd_version.outputs.version }}-minsizerel-linux-arm64
+        path: |
+          openusd-${{ steps.usd_version.outputs.version }}-minsizerel-linux-arm64.tar.gz
+          checksums-linux-arm64.txt
+        retention-days: 90
+
+    - name: Create Release
+      if: github.event_name == 'push' || github.event_name == 'release' || inputs.create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ inputs.release_tag || github.ref_name }}
+        draft: false
+        prerelease: false
+        files: |
+          openusd-${{ steps.usd_version.outputs.version }}-minsizerel-linux-arm64.tar.gz
+          checksums-linux-arm64.txt
+        body: |
+          ## OpenUSD MinSizeRel Build (Linux ARM64)
+
+          **USD Version:** ${{ steps.usd_version.outputs.version }}
+          **Build Type:** MinSizeRel (Size-Optimized Monolithic)
+          **Platform:** Linux ARM64
+
+          ### Features
+          - Custom namespace: `pxr_lte`
+          - Library prefix: `lte`
+          - Monolithic library
+          - Python bindings included
+          - Minimal size optimization
+
+          ### Installation
+          ```bash
+          # Extract
+          tar -xzf openusd-${{ steps.usd_version.outputs.version }}-minsizerel-linux-arm64.tar.gz
+
+          # Setup environment
+          cd openusd-${{ steps.usd_version.outputs.version }}-minsizerel-linux-arm64
+          source setup-usd-env.sh
+
+          # Verify
+          usdcat --help
+          ```
+
+          ### Checksums
+          See `checksums-linux-arm64.txt` for SHA256 checksums.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

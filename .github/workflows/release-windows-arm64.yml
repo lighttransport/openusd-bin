@@ -1,0 +1,199 @@
+name: Build and Release (Windows ARM64)
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0, v0.25.11, etc.
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a new release'
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup MSVC for ARM64
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: arm64
+
+    - name: Install build dependencies
+      run: |
+        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+        choco install ninja -y
+
+    - name: Install uv
+      run: |
+        powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+        $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+        echo "$env:USERPROFILE\.local\bin" >> $env:GITHUB_PATH
+
+    - name: Clone OpenUSD repository
+      shell: cmd
+      run: 01-checkout.bat
+
+    - name: Build TBB
+      shell: cmd
+      run: 02-download-tbb.bat
+
+    - name: Configure MinSizeRel build
+      shell: cmd
+      run: 03-configure-minsizerel.bat
+
+    - name: Build and install MinSizeRel
+      shell: cmd
+      run: 04-build-minsizerel.bat
+
+    - name: Generate environment setup script
+      shell: cmd
+      run: 05-setup-env-minsizerel.bat
+
+    - name: Verify installation
+      shell: cmd
+      run: |
+        call dist-minsizerel-ms\setup-usd-env.bat
+        usdcat --help
+        .venv\Scripts\python.exe -c "from pxr import Usd; print('USD Version:', Usd.GetVersion())"
+
+    - name: Get OpenUSD version
+      id: usd_version
+      shell: powershell
+      run: |
+        $usdVersion = & .venv\Scripts\python.exe -c "from pxr import Usd; v=Usd.GetVersion(); print(f'{v[0]}.{v[1]}.{v[2]}')"
+        echo "version=$usdVersion" >> $env:GITHUB_OUTPUT
+        Write-Host "USD Version: $usdVersion"
+
+    - name: Create build info
+      shell: powershell
+      run: |
+        $buildInfo = @"
+        OpenUSD Build Information
+        ========================
+
+        Build Type: MinSizeRel (Size-Optimized Monolithic)
+        USD Version: ${{ steps.usd_version.outputs.version }}
+        Build Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')
+        Git Commit: $($env:GITHUB_SHA.Substring(0,8))
+
+        Configuration:
+        - Namespace: pxr_lte
+        - Library Prefix: lte
+        - Monolithic: ON
+        - Python Support: ON
+        - Imaging: OFF
+
+        Platform:
+        - OS: Windows Server 2022 ARM64
+        - Compiler: MSVC $(& cl.exe 2>&1 | Select-String 'Version' | ForEach-Object { $_.Line })
+        - CMake: $(cmake --version | Select-Object -First 1)
+
+        Library Size:
+        $(if (Test-Path dist-minsizerel-ms\lib\lteusd_ms.dll) {
+          "- Monolithic Library: $([math]::Round((Get-Item dist-minsizerel-ms\lib\lteusd_ms.dll).Length / 1MB, 2)) MB"
+        })
+
+        Usage:
+        ------
+        1. Extract the archive
+        2. Run the environment setup:
+           setup-usd-env.bat
+        3. Verify installation:
+           usdcat --help
+           python -c "from pxr import Usd; print(Usd.GetVersion())"
+
+        Note: This build requires TBB DLLs which are included in the distribution.
+        "@
+
+        $buildInfo | Out-File -FilePath dist-minsizerel-ms\BUILD_INFO.txt -Encoding UTF8
+
+    - name: Package artifact
+      shell: powershell
+      run: |
+        $version = "${{ steps.usd_version.outputs.version }}"
+        $zipName = "openusd-$version-minsizerel-windows-arm64.zip"
+
+        Compress-Archive -Path dist-minsizerel-ms\* `
+          -DestinationPath $zipName `
+          -CompressionLevel Optimal
+
+        Write-Host "Created: $zipName"
+        Get-Item $zipName | Select-Object Name, Length
+
+    - name: Calculate checksums
+      shell: powershell
+      run: |
+        $version = "${{ steps.usd_version.outputs.version }}"
+        $zipName = "openusd-$version-minsizerel-windows-arm64.zip"
+        $hash = Get-FileHash -Path $zipName -Algorithm SHA256
+        "$($hash.Hash) $zipName" | Out-File -FilePath checksums-windows-arm64.txt -Encoding ASCII
+        Get-Content checksums-windows-arm64.txt
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: openusd-${{ steps.usd_version.outputs.version }}-minsizerel-windows-arm64
+        path: |
+          openusd-${{ steps.usd_version.outputs.version }}-minsizerel-windows-arm64.zip
+          checksums-windows-arm64.txt
+        retention-days: 90
+
+    - name: Create Release
+      if: github.event_name == 'push' || github.event_name == 'release' || inputs.create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ inputs.release_tag || github.ref_name }}
+        draft: false
+        prerelease: false
+        files: |
+          openusd-${{ steps.usd_version.outputs.version }}-minsizerel-windows-arm64.zip
+          checksums-windows-arm64.txt
+        body: |
+          ## OpenUSD MinSizeRel Build (Windows ARM64)
+
+          **USD Version:** ${{ steps.usd_version.outputs.version }}
+          **Build Type:** MinSizeRel (Size-Optimized Monolithic)
+          **Platform:** Windows ARM64
+
+          ### Features
+          - Custom namespace: `pxr_lte`
+          - Library prefix: `lte`
+          - Monolithic DLL
+          - Python bindings included
+          - Minimal size optimization
+
+          ### Installation
+          ```cmd
+          REM Extract
+          Expand-Archive openusd-${{ steps.usd_version.outputs.version }}-minsizerel-windows-arm64.zip
+
+          REM Setup environment
+          cd openusd-${{ steps.usd_version.outputs.version }}-minsizerel-windows-arm64
+          setup-usd-env.bat
+
+          REM Verify
+          usdcat --help
+          ```
+
+          ### Requirements
+          - Windows 10/11 ARM64 or Windows Server ARM64
+          - Visual C++ Redistributable (included with Windows)
+          - Python 3.10+ (for Python bindings)
+
+          ### Checksums
+          See `checksums-windows-arm64.txt` for SHA256 checksums.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

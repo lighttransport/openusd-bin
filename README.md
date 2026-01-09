@@ -329,33 +329,70 @@ Automated builds are available via GitHub Actions.
 
 ### Available Workflows
 
-1. **Build MinSizeRel (Linux)** - Builds on every push/PR
+#### CI Builds (On every push/PR)
+
+1. **Build MinSizeRel (Linux x86_64)** - Ubuntu latest
    - Automatically builds MinSizeRel variant for Linux x86_64
    - Uploads build artifacts (retained 30 days)
    - Run time: ~30-45 minutes
 
-2. **Build MinSizeRel (Windows)** - Builds on every push/PR
+2. **Build MinSizeRel (Linux ARM64)** - Ubuntu 24.04 ARM64
+   - Automatically builds MinSizeRel variant for Linux ARM64
+   - Uploads build artifacts (retained 30 days)
+   - Run time: ~30-45 minutes
+
+3. **Build MinSizeRel (Windows x86_64)** - Windows latest
    - Automatically builds MinSizeRel variant for Windows x86_64
    - Uploads build artifacts (retained 30 days)
    - Run time: ~35-50 minutes
 
-3. **Build and Release (Linux)** - Creates versioned releases
-   - Triggered by GitHub releases or manual dispatch
-   - Generates versioned packages for Linux
+4. **Build MinSizeRel (Windows ARM64)** - Windows latest
+   - Automatically builds MinSizeRel variant for Windows ARM64
+   - Uploads build artifacts (retained 30 days)
+   - Run time: ~35-50 minutes
+
+5. **Build MinSizeRel (macOS ARM64)** - macOS 14 (Apple Silicon)
+   - Automatically builds MinSizeRel variant for macOS ARM64 (M1/M2/M3)
+   - Uploads build artifacts (retained 30 days)
+   - Run time: ~25-40 minutes
+
+#### Release Builds (On git tag push)
+
+6. **Build and Release (Linux x86_64)** - Creates versioned releases
+   - Triggered by git tags starting with 'v'
+   - Generates versioned packages for Linux x86_64
    - Includes SHA256 checksums
    - Attaches artifacts to releases
 
-4. **Build and Release (Windows)** - Creates versioned releases
-   - Triggered by GitHub releases or manual dispatch
-   - Generates versioned packages for Windows
+7. **Build and Release (Linux ARM64)** - Creates versioned releases
+   - Triggered by git tags starting with 'v'
+   - Generates versioned packages for Linux ARM64
    - Includes SHA256 checksums
    - Attaches artifacts to releases
+
+8. **Build and Release (Windows x86_64)** - Creates versioned releases
+   - Triggered by git tags starting with 'v'
+   - Generates versioned packages for Windows x86_64
+   - Includes SHA256 checksums
+   - Attaches artifacts to releases
+
+9. **Build and Release (Windows ARM64)** - Creates versioned releases
+   - Triggered by git tags starting with 'v'
+   - Generates versioned packages for Windows ARM64
+   - Includes SHA256 checksums
+   - Attaches artifacts to releases
+
+10. **Build and Release (macOS ARM64)** - Creates versioned releases
+    - Triggered by git tags starting with 'v'
+    - Generates versioned packages for macOS ARM64
+    - Includes SHA256 checksums
+    - Attaches artifacts to releases
 
 ### Creating a Release
 
 **Automated Release (Recommended):**
 
-Simply push a git tag starting with 'v' to automatically trigger release builds for both Linux and Windows:
+Simply push a git tag starting with 'v' to automatically trigger release builds for all platforms:
 
 ```bash
 # Create and push a version tag
@@ -364,16 +401,21 @@ git push origin v1.0.0
 ```
 
 This will automatically:
-1. Trigger both Linux and Windows release workflows in parallel
-2. Build MinSizeRel binaries for both platforms
+1. Trigger all 5 release workflows in parallel:
+   - Linux x86_64
+   - Linux ARM64
+   - Windows x86_64
+   - Windows ARM64
+   - macOS ARM64 (Apple Silicon)
+2. Build MinSizeRel binaries for all platforms
 3. Create a GitHub Release with the tag name
-4. Upload versioned artifacts with SHA256 checksums
+4. Upload versioned artifacts with SHA256 checksums for each platform
 5. Generate BUILD_INFO.txt with detailed build information
 
 **Manual Release:**
 
 Alternatively, use GitHub Actions manual dispatch:
-1. Go to Actions → "Build and Release" or "Build and Release (Windows)"
+1. Go to Actions → Select desired platform workflow (e.g., "Build and Release (Linux ARM64)")
 2. Click "Run workflow"
 3. Check "Create a new release"
 4. Enter release tag (e.g., `v1.0.0`)
@@ -382,7 +424,7 @@ Alternatively, use GitHub Actions manual dispatch:
 
 Download from GitHub Actions or Releases:
 
-**Linux:**
+**Linux x86_64:**
 ```bash
 # Extract
 tar -xzf openusd-*-minsizerel-linux-x86_64.tar.gz
@@ -393,7 +435,18 @@ source setup-usd-env.sh
 usdcat --help
 ```
 
-**Windows:**
+**Linux ARM64:**
+```bash
+# Extract
+tar -xzf openusd-*-minsizerel-linux-arm64.tar.gz
+
+# Setup and use
+cd openusd-*-minsizerel-linux-arm64
+source setup-usd-env.sh
+usdcat --help
+```
+
+**Windows x86_64:**
 ```powershell
 # Extract
 Expand-Archive openusd-*-minsizerel-windows-x86_64.zip
@@ -404,7 +457,34 @@ cd openusd-*-minsizerel-windows-x86_64
 usdcat --help
 ```
 
-**Platforms:** Linux x86_64 and Windows x86_64
+**Windows ARM64:**
+```powershell
+# Extract
+Expand-Archive openusd-*-minsizerel-windows-arm64.zip
+
+# Setup and use
+cd openusd-*-minsizerel-windows-arm64
+.\setup-usd-env.bat
+usdcat --help
+```
+
+**macOS ARM64 (Apple Silicon M1/M2/M3):**
+```bash
+# Extract
+tar -xzf openusd-*-minsizerel-macos-arm64.tar.gz
+
+# Setup and use
+cd openusd-*-minsizerel-macos-arm64
+source setup-usd-env.sh
+usdcat --help
+```
+
+**Supported Platforms:**
+- Linux x86_64
+- Linux ARM64
+- Windows x86_64
+- Windows ARM64
+- macOS ARM64 (Apple Silicon)
 
 See [`.github/WORKFLOWS.md`](.github/WORKFLOWS.md) for detailed documentation.
 

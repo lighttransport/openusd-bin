@@ -1,0 +1,104 @@
+name: Build OpenUSD MinSizeRel (Windows ARM64)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup MSVC for ARM64
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: arm64
+
+    - name: Install build dependencies
+      run: |
+        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+        choco install ninja -y
+        refreshenv
+
+    - name: Install uv
+      run: |
+        powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+        $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+        echo "$env:USERPROFILE\.local\bin" >> $env:GITHUB_PATH
+
+    - name: Verify uv installation
+      run: |
+        uv --version
+
+    - name: Clone OpenUSD repository
+      shell: cmd
+      run: |
+        01-checkout.bat
+
+    - name: Build TBB for ARM64
+      shell: cmd
+      run: |
+        02-download-tbb.bat
+
+    - name: Configure MinSizeRel build for ARM64
+      shell: cmd
+      run: |
+        03-configure-minsizerel.bat
+
+    - name: Build and install MinSizeRel
+      shell: cmd
+      run: |
+        04-build-minsizerel.bat
+
+    - name: Generate environment setup script
+      shell: cmd
+      run: |
+        05-setup-env-minsizerel.bat
+
+    - name: Verify installation
+      shell: cmd
+      run: |
+        call dist-minsizerel-ms\setup-usd-env.bat
+        usdcat --help
+        .venv\Scripts\python.exe -c "from pxr import Usd; print('USD Version:', Usd.GetVersion())"
+
+    - name: Show library size
+      shell: powershell
+      run: |
+        $dllPath = "dist-minsizerel-ms\lib\lteusd_ms.dll"
+        if (Test-Path $dllPath) {
+          $size = (Get-Item $dllPath).Length / 1MB
+          Write-Host "Library size: $([math]::Round($size, 2)) MB"
+          Get-Item $dllPath | Select-Object Name, Length
+        }
+
+    - name: Package artifact
+      shell: powershell
+      run: |
+        Compress-Archive -Path dist-minsizerel-ms\* `
+          -DestinationPath openusd-minsizerel-windows-arm64.zip `
+          -CompressionLevel Optimal
+        Get-Item openusd-minsizerel-windows-arm64.zip | Select-Object Name, Length
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: openusd-minsizerel-windows-arm64
+        path: openusd-minsizerel-windows-arm64.zip
+        retention-days: 30
+
+    - name: Upload installation directory
+      uses: actions/upload-artifact@v4
+      with:
+        name: openusd-minsizerel-installation-windows-arm64
+        path: |
+          dist-minsizerel-ms/
+          !dist-minsizerel-ms/**/*.pyc
+          !dist-minsizerel-ms/**/__pycache__
+        retention-days: 7
