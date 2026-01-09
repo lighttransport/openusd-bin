@@ -60,7 +60,7 @@ export DYLD_LIBRARY_PATH="${USD_INSTALL_DIR}/lib:${TBB_DIR}/lib:${DYLD_LIBRARY_P
 EOF
 
 # Add Python version-specific path
-cat >> "${SETUP_SCRIPT}" << EOF
+cat >> "${SETUP_SCRIPT}" << 'EOF'
 export PYTHONPATH="${USD_INSTALL_DIR}/lib/python:${PYTHONPATH}"
 EOF
 
