@@ -82,6 +82,8 @@ jobs:
     - name: Create build info
       shell: powershell
       run: |
+        $compilerVersion = (& cl.exe 2>&1 | Select-String 'Version' | ForEach-Object { $_.Line }).Trim()
+        $cmakeVersion = (cmake --version | Select-Object -First 1).Trim()
         $buildInfo = @"
         OpenUSD Build Information
         ========================
@@ -100,8 +102,8 @@ jobs:
 
         Platform:
         - OS: Windows Server 2022 ARM64
-        - Compiler: MSVC $(& cl.exe 2>&1 | Select-String 'Version' | ForEach-Object { $_.Line })
-        - CMake: $(cmake --version | Select-Object -First 1)
+        - Compiler: MSVC $compilerVersion
+        - CMake: $cmakeVersion
 
         Library Size:
         $(if (Test-Path dist-minsizerel-ms\lib\lteusd_ms.dll) {
