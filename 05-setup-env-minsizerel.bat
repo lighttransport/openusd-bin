@@ -78,8 +78,8 @@ if defined PYTHON_VERSION (
 REM Continue writing the script
 (
 echo.
-echo REM Set PATH
-echo set "PATH=%%USD_INSTALL_DIR%%\bin;%%PATH%%"
+echo REM Set PATH ^(include lib directory for DLLs^)
+echo set "PATH=%%USD_INSTALL_DIR%%\bin;%%USD_INSTALL_DIR%%\lib;%%PATH%%"
 echo if defined TBB_DIR set "PATH=%%TBB_DIR%%\bin;%%PATH%%"
 echo.
 echo REM Set PYTHONPATH
@@ -93,7 +93,7 @@ echo echo ========================================
 echo echo OpenUSD Environment Configured ^(MinSizeRel^)
 echo echo ========================================
 echo echo USD_INSTALL_DIR: %%USD_INSTALL_DIR%%
-echo echo PATH includes: %%USD_INSTALL_DIR%%\bin
+echo echo PATH includes: %%USD_INSTALL_DIR%%\bin and %%USD_INSTALL_DIR%%\lib
 echo if defined TBB_DIR echo TBB PATH includes: %%TBB_DIR%%\bin
 echo echo PYTHONPATH includes: %%USD_PYTHON_PATH%%
 echo echo ========================================
