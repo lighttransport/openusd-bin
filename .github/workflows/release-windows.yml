@@ -120,6 +120,17 @@ jobs:
 
         $buildInfo | Out-File -FilePath dist-minsizerel-ms\BUILD_INFO.txt -Encoding UTF8
 
+    - name: Copy TBB to package
+      shell: powershell
+      run: |
+        if (Test-Path dist\tbb) {
+          Write-Host "Copying TBB to package..."
+          Copy-Item -Path dist\tbb -Destination dist-minsizerel-ms\tbb -Recurse -Force
+          Write-Host "TBB copied successfully"
+        } else {
+          Write-Host "Warning: TBB directory not found at dist\tbb"
+        }
+
     - name: Package artifact
       shell: powershell
       run: |

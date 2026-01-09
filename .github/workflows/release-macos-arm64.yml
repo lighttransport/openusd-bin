@@ -101,9 +101,18 @@ jobs:
            usdcat --help
            python -c "from pxr import Usd; print(Usd.GetVersion())"
 
-        Note: This build requires TBB libraries in the ../dist/tbb directory
-        or adjust TBB_DIR in setup-usd-env.sh
+        Note: This build includes TBB libraries which are included in the distribution.
         EOF
+
+    - name: Copy TBB to package
+      run: |
+        if [ -d dist/tbb ]; then
+          echo "Copying TBB to package..."
+          cp -r dist/tbb dist-minsizerel-ms/tbb
+          echo "TBB copied successfully"
+        else
+          echo "Warning: TBB directory not found at dist/tbb"
+        fi
 
     - name: Package artifact
       run: |
