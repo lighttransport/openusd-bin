@@ -1,0 +1,67 @@
+name: Build OpenUSD 26.05 LTE (LLVM-MinGW)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: llvm-mingw-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout build scripts
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake curl file ninja-build unzip xz-utils zip
+
+      - name: Checkout OpenUSD v26.05 custom namespace branch
+        run: ./01-checkout-llvm-mingw.sh
+
+      - name: Build Windows x86_64 package
+        env:
+          JOBS: '4'
+        run: ./02-build-llvm-mingw.sh
+
+      - name: Verify LLVM-MinGW and LTE outputs
+        run: |
+          file dist-llvm-mingw/lib/lteusd_ms.dll
+          file dist-llvm-mingw/bin/tbb12.dll
+          grep -E '^#define PXR_NS pxr_lte$' dist-llvm-mingw/include/pxr/pxr.h
+          build-llvm-mingw/llvm-mingw-20260616-ucrt-ubuntu-22.04-x86_64/bin/llvm-nm \
+            --defined-only dist-llvm-mingw/lib/lteusd_ms.dll | grep pxr_lte > /dev/null
+
+      - name: Package artifact
+        run: |
+          cd dist-llvm-mingw
+          zip -9 -r ../openusd-26.05-lte-llvm-mingw-windows-x86_64.zip .
+
+      - name: Upload packaged build
+        uses: actions/upload-artifact@v4
+        with:
+          name: openusd-26.05-lte-llvm-mingw-windows-x86_64
+          path: openusd-26.05-lte-llvm-mingw-windows-x86_64.zip
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+      - name: Upload installation tree
+        uses: actions/upload-artifact@v4
+        with:
+          name: openusd-26.05-lte-llvm-mingw-installation
+          path: dist-llvm-mingw/
+          if-no-files-found: error
+          retention-days: 7

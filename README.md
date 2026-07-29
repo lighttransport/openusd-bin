@@ -7,6 +7,30 @@ Build scripts for OpenUSD with LTE custom namespace and monolithic library confi
 
 > **Note:** Replace `YOUR_USERNAME` in the badges above with your GitHub username after pushing to your repository.
 
+## LLVM-MinGW Windows x86_64 build
+
+The LLVM-MinGW variant cross-builds OpenUSD 26.05 for Windows x86_64 from an
+Ubuntu x86_64 host. It uses the `v26.05-custom-namespace` branch, the
+`pxr_lte` C++ namespace, the `lte` library prefix, and a shared monolithic
+Release library. Python, imaging, command-line tools, tests, and examples are
+disabled.
+
+Required host tools are CMake, Git, Ninja, curl, tar with xz support, and
+unzip. The build downloads LLVM-MinGW 20260616 and oneTBB 2021.12.0 by
+default:
+
+```bash
+./01-checkout-llvm-mingw.sh
+./02-build-llvm-mingw.sh
+```
+
+The install tree is written to `dist-llvm-mingw/`; its main library is
+`lib/lteusd_ms.dll`. Override `OPENUSD_REF`, `BUILD_ROOT`, `INSTALL_PREFIX`,
+`LLVM_MINGW_VERSION`, `LLVM_MINGW_RELEASE`, `ONETBB_VERSION`, or `JOBS` as
+needed. GitHub Actions also publishes a zip archive (30-day retention) and the
+unpacked installation tree (7-day retention) from
+`build-llvm-mingw.yml`.
+
 ## Prerequisites
 
 ### Linux
