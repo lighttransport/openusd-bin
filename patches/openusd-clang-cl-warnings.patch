@@ -5,10 +5,19 @@ index 8f6294f40..58ff782a1 100644
 @@ -12,5 +12,5 @@
  function(_disable_warning flag)
 -    if(MSVC)
-+    if(MSVC AND NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
++    if(MSVC AND flag MATCHES "^[0-9]+$")
          list(APPEND _PXR_CXX_WARNING_FLAGS "/wd${flag}")
      else()
          list(APPEND _PXR_CXX_WARNING_FLAGS "-Wno-${flag}")
+diff --git a/cmake/defaults/CXXDefaults.cmake b/cmake/defaults/CXXDefaults.cmake
+index f656e1927..31b13a273 100644
+--- a/cmake/defaults/CXXDefaults.cmake
++++ b/cmake/defaults/CXXDefaults.cmake
+@@ -19 +19,4 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+     include(clangdefaults)
++    if(MSVC)
++        include(msvcdefaults)
++    endif()
 diff --git a/pxr/base/arch/demangle.cpp b/pxr/base/arch/demangle.cpp
 index 48e8a697d..51efbfe7c 100644
 --- a/pxr/base/arch/demangle.cpp
