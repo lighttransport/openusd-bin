@@ -27,15 +27,56 @@ default:
 The install tree is written to `dist-llvm-mingw/`; its main library is
 `lib/lteusd_ms.dll`. Override `OPENUSD_REF`, `BUILD_ROOT`, `INSTALL_PREFIX`,
 `LLVM_MINGW_VERSION`, `LLVM_MINGW_RELEASE`, `ONETBB_VERSION`, or `JOBS` as
-needed. GitHub Actions also publishes a zip archive (30-day retention) and the
-unpacked installation tree (7-day retention) from
-`build-llvm-mingw.yml`. Pushing a `v*` tag also publishes the zip and its
-SHA-256 checksum as permanent GitHub Release assets:
+needed.
+
+### CI artifacts
+
+The `build-llvm-mingw.yml` workflow runs for pushes and pull requests targeting
+`main` or `master`, and can also be started with **Run workflow** in GitHub
+Actions. Every successful build uploads:
+
+- `openusd-26.05-lte-llvm-mingw-windows-x86_64`, containing the distribution
+  zip and its SHA-256 checksum, retained for 30 days.
+- `openusd-26.05-lte-llvm-mingw-installation`, containing the unpacked install
+  tree, retained for 7 days.
+
+Inspect and download a CI artifact with the GitHub CLI:
 
 ```bash
-git tag v26.05-lte
-git push origin v26.05-lte
+gh run list --workflow build-llvm-mingw.yml
+gh run watch RUN_ID
+gh run download RUN_ID \
+  --name openusd-26.05-lte-llvm-mingw-windows-x86_64
+sha256sum --check openusd-26.05-lte-llvm-mingw-windows-x86_64.zip.sha256
 ```
+
+### Publishing a GitHub Release
+
+Pushing a `v*-llvm-mingw` tag runs the same verified build and then gives a
+separate tag-only job permission to create a dedicated GitHub Release. The
+legacy native-platform release workflows explicitly ignore these tags and
+releases. The LLVM-MinGW release job downloads the CI artifact, creates the
+release if necessary, and idempotently uploads the distribution zip and
+checksum as permanent release assets.
+
+Create an annotated release tag on the commit containing the workflow and push
+only that tag:
+
+```bash
+git tag -a v26.05-lte-llvm-mingw -m "OpenUSD 26.05 LTE LLVM-MinGW"
+git push origin v26.05-lte-llvm-mingw
+```
+
+Monitor and download the resulting release with:
+
+```bash
+gh run list --workflow build-llvm-mingw.yml --branch v26.05-lte-llvm-mingw
+gh release view v26.05-lte-llvm-mingw
+gh release download v26.05-lte-llvm-mingw
+```
+
+Normal branch and pull-request builds never create releases. Only a successful
+tag build runs the release job.
 
 ## Prerequisites
 

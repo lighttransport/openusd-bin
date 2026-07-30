@@ -3,7 +3,7 @@ name: Build OpenUSD 26.05 LTE (LLVM-MinGW)
 on:
   push:
     branches: [main, master]
-    tags: ['v*']
+    tags: ['v*-llvm-mingw']
   pull_request:
     branches: [main, master]
   workflow_dispatch:
@@ -92,10 +92,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists; uploading assets."
+          elif ! gh release create "$GITHUB_REF_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title "OpenUSD $GITHUB_REF_NAME LTE LLVM-MinGW" \
+              --generate-notes; then
+            echo "Release creation raced with another job; checking again."
+            gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null
+          fi
+
+          gh release upload "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" \
-            --verify-tag \
-            --title "OpenUSD $GITHUB_REF_NAME LTE LLVM-MinGW" \
-            --generate-notes \
+            --clobber \
             release-assets/openusd-26.05-lte-llvm-mingw-windows-x86_64.zip \
             release-assets/openusd-26.05-lte-llvm-mingw-windows-x86_64.zip.sha256

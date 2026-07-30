@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'  # Trigger on version tags like v1.0.0, v0.25.11, etc.
+      - '!v*-llvm-mingw'
   release:
     types: [created]
   workflow_dispatch:
@@ -20,6 +21,7 @@ on:
 
 jobs:
   build:
+    if: ${{ !endsWith(github.event.release.tag_name || inputs.release_tag || github.ref_name, '-llvm-mingw') }}
     runs-on: windows-11-arm  # ARM64 runner (free for public repos)
 
     steps:
