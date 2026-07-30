@@ -1,0 +1,129 @@
+name: Build OpenUSD 26.05 LTE (clang-cl)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clang-cl-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout build scripts
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC and Windows SDK
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Select clang-cl toolchain
+        shell: powershell
+        run: |
+          $llvmBin = Join-Path $env:ProgramFiles 'LLVM\bin'
+          if (-not (Test-Path (Join-Path $llvmBin 'clang-cl.exe'))) {
+            throw "clang-cl.exe not found in $llvmBin"
+          }
+          $llvmBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "LLVM bin: $llvmBin"
+          & (Join-Path $llvmBin 'clang-cl.exe') --version
+          where.exe link.exe
+          Write-Host "Windows SDK: $env:WindowsSdkDir"
+
+      - name: Checkout OpenUSD v26.05 custom namespace branch
+        shell: cmd
+        run: 01-checkout-clang-cl.bat
+
+      - name: Build with clang-cl and MSVC SDK
+        shell: cmd
+        env:
+          JOBS: '4'
+        run: 02-build-clang-cl.bat
+
+      - name: Verify compiler, namespace, and PE output
+        shell: powershell
+        run: |
+          $compilerFiles = Get-ChildItem `
+            'build-clang-cl\usd-build\CMakeFiles' `
+            -Filter CMakeCXXCompiler.cmake -Recurse
+          if (-not (Select-String -Path $compilerFiles.FullName `
+              -Pattern 'set\(CMAKE_CXX_COMPILER_ID "Clang"\)' -Quiet)) {
+            throw 'CMake did not identify the C++ compiler as Clang'
+          }
+          if (-not (Select-String -Path $compilerFiles.FullName `
+              -Pattern 'set\(CMAKE_CXX_SIMULATE_ID "MSVC"\)' -Quiet)) {
+            throw 'Clang is not using the MSVC-compatible frontend'
+          }
+          if (-not (Select-String `
+              -Path 'dist-clang-cl\include\pxr\pxr.h' `
+              -Pattern '^#define PXR_NS pxr_lte$' -Quiet)) {
+            throw 'Installed headers do not use the pxr_lte namespace'
+          }
+          $headers = dumpbin.exe /headers dist-clang-cl\lib\lteusd_ms.dll
+          if (-not ($headers | Select-String 'machine \(x64\)' -Quiet)) {
+            throw 'lteusd_ms.dll is not an x64 PE binary'
+          }
+          dumpbin.exe /dependents dist-clang-cl\lib\lteusd_ms.dll
+          Get-Item dist-clang-cl\lib\lteusd_ms.dll |
+            Select-Object Name, Length
+
+      - name: Write build information
+        shell: powershell
+        run: |
+          $sourceCommit = git -C openusd rev-parse HEAD
+          @"
+          OpenUSD 26.05 clang-cl build
+          Source commit: $sourceCommit
+          Target: Windows x86_64, MSVC ABI
+          Compiler: clang-cl
+          Linker and SDK: Visual Studio and Windows SDK
+          Namespace: pxr_lte
+          Library prefix: lte
+          Build: Release, shared monolithic, no Python or imaging
+          oneTBB: 2021.12.0, built with clang-cl
+          "@ | Set-Content dist-clang-cl\BUILD_INFO.txt
+
+      - name: Package artifact
+        shell: powershell
+        run: |
+          Compress-Archive `
+            -Path dist-clang-cl\* `
+            -DestinationPath openusd-26.05-lte-clang-cl-windows-x86_64.zip `
+            -CompressionLevel Optimal
+          $hash = Get-FileHash `
+            openusd-26.05-lte-clang-cl-windows-x86_64.zip `
+            -Algorithm SHA256
+          "$($hash.Hash.ToLower())  openusd-26.05-lte-clang-cl-windows-x86_64.zip" |
+            Set-Content `
+              openusd-26.05-lte-clang-cl-windows-x86_64.zip.sha256 `
+              -Encoding ascii
+
+      - name: Upload packaged build
+        uses: actions/upload-artifact@v4
+        with:
+          name: openusd-26.05-lte-clang-cl-windows-x86_64
+          path: |
+            openusd-26.05-lte-clang-cl-windows-x86_64.zip
+            openusd-26.05-lte-clang-cl-windows-x86_64.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+      - name: Upload installation tree
+        uses: actions/upload-artifact@v4
+        with:
+          name: openusd-26.05-lte-clang-cl-installation
+          path: dist-clang-cl/
+          if-no-files-found: error
+          retention-days: 7

@@ -78,6 +78,28 @@ gh release download v26.05-lte-llvm-mingw
 Normal branch and pull-request builds never create releases. Only a successful
 tag build runs the release job.
 
+## clang-cl with Visual Studio and Windows SDK
+
+The native Windows x86_64 clang-cl variant uses LLVM's MSVC-compatible driver
+with Visual Studio `link.exe`, the Windows SDK/UCRT, and a clang-cl-built
+oneTBB. It builds the same minimal OpenUSD 26.05 configuration as the
+LLVM-MinGW variant: `pxr_lte`, the `lte` library prefix, a shared monolithic
+library, and no Python or imaging.
+
+Run it from an x64 Visual Studio developer command prompt with LLVM, CMake,
+Ninja, Git, curl, and tar available:
+
+```cmd
+01-checkout-clang-cl.bat
+02-build-clang-cl.bat
+```
+
+The install tree is written to `dist-clang-cl\`. The
+`build-clang-cl-windows.yml` workflow performs the same build on a native
+Windows GitHub runner, verifies that CMake selected Clang with MSVC simulation,
+checks the `pxr_lte` namespace and x64 PE DLL, and uploads both packaged and
+unpacked artifacts.
+
 ## Prerequisites
 
 ### Linux
