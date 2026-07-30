@@ -10,13 +10,15 @@ index 8f6294f40..58ff782a1 100644
      else()
          list(APPEND _PXR_CXX_WARNING_FLAGS "-Wno-${flag}")
 diff --git a/cmake/defaults/CXXDefaults.cmake b/cmake/defaults/CXXDefaults.cmake
-index f656e1927..31b13a273 100644
+index f656e1927..f5d13f72d 100644
 --- a/cmake/defaults/CXXDefaults.cmake
 +++ b/cmake/defaults/CXXDefaults.cmake
-@@ -19 +19,4 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-     include(clangdefaults)
+@@ -19 +19,5 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+-    include(clangdefaults)
 +    if(MSVC)
 +        include(msvcdefaults)
++    else()
++        include(clangdefaults)
 +    endif()
 diff --git a/pxr/base/arch/demangle.cpp b/pxr/base/arch/demangle.cpp
 index 48e8a697d..51efbfe7c 100644

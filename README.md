@@ -101,9 +101,10 @@ checks the `pxr_lte` namespace and x64 PE DLL, and uploads both packaged and
 unpacked artifacts. The checkout step applies
 `patches/openusd-clang-cl-warnings.patch`, which keeps OpenUSD's named Clang
 warning suppressions in `-Wno-*` form instead of incorrectly converting them
-to numeric MSVC `/wd*` flags under clang-cl, combines Clang diagnostics with
-MSVC platform definitions such as `NOMINMAX`, and selects the Windows
-demangling path instead of the unavailable Itanium `cxxabi.h` path.
+to numeric MSVC `/wd*` flags under clang-cl, selects the MSVC-oriented warning
+and platform defaults (including `NOMINMAX`) without clang's exhaustive
+`-Wall` mode, and selects the Windows demangling path instead of the unavailable
+Itanium `cxxabi.h` path.
 
 ## Prerequisites
 
