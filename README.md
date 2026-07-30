@@ -98,7 +98,10 @@ The install tree is written to `dist-clang-cl\`. The
 `build-clang-cl-windows.yml` workflow performs the same build on a native
 Windows GitHub runner, verifies that CMake selected Clang with MSVC simulation,
 checks the `pxr_lte` namespace and x64 PE DLL, and uploads both packaged and
-unpacked artifacts.
+unpacked artifacts. The checkout step applies
+`patches/openusd-clang-cl-warnings.patch`, which keeps OpenUSD's named Clang
+warning suppressions in `-Wno-*` form instead of incorrectly converting them
+to numeric MSVC `/wd*` flags under clang-cl.
 
 ## Prerequisites
 

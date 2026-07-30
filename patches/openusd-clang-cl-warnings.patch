@@ -1,0 +1,11 @@
+diff --git a/cmake/defaults/CXXHelpers.cmake b/cmake/defaults/CXXHelpers.cmake
+index 8f6294f40..58ff782a1 100644
+--- a/cmake/defaults/CXXHelpers.cmake
++++ b/cmake/defaults/CXXHelpers.cmake
+@@ -12,5 +12,5 @@
+ function(_disable_warning flag)
+-    if(MSVC)
++    if(MSVC AND NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+         list(APPEND _PXR_CXX_WARNING_FLAGS "/wd${flag}")
+     else()
+         list(APPEND _PXR_CXX_WARNING_FLAGS "-Wno-${flag}")
