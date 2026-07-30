@@ -27,14 +27,14 @@ git -C "%OPENUSD_SOURCE_DIR%" checkout --detach FETCH_HEAD
 if errorlevel 1 exit /b 1
 
 :apply_patch
-git -C "%OPENUSD_SOURCE_DIR%" apply --reverse --check "%CLANG_CL_PATCH%" >nul 2>&1
+git -C "%OPENUSD_SOURCE_DIR%" apply --unidiff-zero --reverse --check "%CLANG_CL_PATCH%" >nul 2>&1
 if not errorlevel 1 (
     echo OpenUSD clang-cl warning patch is already applied.
     goto show_revision
 )
-git -C "%OPENUSD_SOURCE_DIR%" apply --check "%CLANG_CL_PATCH%"
+git -C "%OPENUSD_SOURCE_DIR%" apply --unidiff-zero --check "%CLANG_CL_PATCH%"
 if errorlevel 1 exit /b 1
-git -C "%OPENUSD_SOURCE_DIR%" apply "%CLANG_CL_PATCH%"
+git -C "%OPENUSD_SOURCE_DIR%" apply --unidiff-zero "%CLANG_CL_PATCH%"
 if errorlevel 1 exit /b 1
 echo Applied OpenUSD clang-cl warning patch.
 

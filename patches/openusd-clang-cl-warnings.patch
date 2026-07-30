@@ -9,3 +9,11 @@ index 8f6294f40..58ff782a1 100644
          list(APPEND _PXR_CXX_WARNING_FLAGS "/wd${flag}")
      else()
          list(APPEND _PXR_CXX_WARNING_FLAGS "-Wno-${flag}")
+diff --git a/pxr/base/arch/demangle.cpp b/pxr/base/arch/demangle.cpp
+index 48e8a697d..51efbfe7c 100644
+--- a/pxr/base/arch/demangle.cpp
++++ b/pxr/base/arch/demangle.cpp
+@@ -20 +20,2 @@
+-    ARCH_COMPILER_GCC_MAJOR > 3 || defined(ARCH_COMPILER_CLANG)
++    ARCH_COMPILER_GCC_MAJOR > 3 || (defined(ARCH_COMPILER_CLANG) && \
++    !defined(ARCH_OS_WINDOWS))
