@@ -3,6 +3,7 @@ name: Build OpenUSD 26.05 LTE (LLVM-MinGW)
 on:
   push:
     branches: [main, master]
+    tags: ['v*']
   pull_request:
     branches: [main, master]
   workflow_dispatch:
@@ -49,11 +50,18 @@ jobs:
           cd dist-llvm-mingw
           zip -9 -r ../openusd-26.05-lte-llvm-mingw-windows-x86_64.zip .
 
+      - name: Create checksum
+        run: |
+          sha256sum openusd-26.05-lte-llvm-mingw-windows-x86_64.zip \
+            > openusd-26.05-lte-llvm-mingw-windows-x86_64.zip.sha256
+
       - name: Upload packaged build
         uses: actions/upload-artifact@v4
         with:
           name: openusd-26.05-lte-llvm-mingw-windows-x86_64
-          path: openusd-26.05-lte-llvm-mingw-windows-x86_64.zip
+          path: |
+            openusd-26.05-lte-llvm-mingw-windows-x86_64.zip
+            openusd-26.05-lte-llvm-mingw-windows-x86_64.zip.sha256
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
@@ -65,3 +73,29 @@ jobs:
           path: dist-llvm-mingw/
           if-no-files-found: error
           retention-days: 7
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packaged build
+        uses: actions/download-artifact@v4
+        with:
+          name: openusd-26.05-lte-llvm-mingw-windows-x86_64
+          path: release-assets
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "OpenUSD $GITHUB_REF_NAME LTE LLVM-MinGW" \
+            --generate-notes \
+            release-assets/openusd-26.05-lte-llvm-mingw-windows-x86_64.zip \
+            release-assets/openusd-26.05-lte-llvm-mingw-windows-x86_64.zip.sha256

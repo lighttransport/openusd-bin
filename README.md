@@ -29,7 +29,13 @@ The install tree is written to `dist-llvm-mingw/`; its main library is
 `LLVM_MINGW_VERSION`, `LLVM_MINGW_RELEASE`, `ONETBB_VERSION`, or `JOBS` as
 needed. GitHub Actions also publishes a zip archive (30-day retention) and the
 unpacked installation tree (7-day retention) from
-`build-llvm-mingw.yml`.
+`build-llvm-mingw.yml`. Pushing a `v*` tag also publishes the zip and its
+SHA-256 checksum as permanent GitHub Release assets:
+
+```bash
+git tag v26.05-lte
+git push origin v26.05-lte
+```
 
 ## Prerequisites
 
